@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wumpus World - Knowledge-Based Agent</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Jersey+10&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: "Jersey 10", sans-serif;
+            font-weight: 400;
+            font-style: normal;
+            background: url(background.jpeg);
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            background: #e8f5e9;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 30px;
+            max-width: 1400px;
+            width: 100%;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            color: #2e7d32;
+            font-size: 32px;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            color: #558b2f;
+            font-size: 14px;
+        }
+
+        .game-container {
+            display: flex;
+            gap: 30px;
+            flex-wrap: wrap;
+        }
+
+        .game-board {
+            flex: 1;
+            min-width: 480px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(4, 115px);
+            grid-template-rows: repeat(4, 115px);
+            gap: 4px;
+            background: #fff;
+            padding: 4px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .cell {
+            background: #a5d6a7;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+            position: relative;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            padding: 5px;
+        }
+
+        .cell:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .cell.dark {
+            background: #81c784;
+        }
+
+        .cell.visited {
+            background: #c8e6c9;
+            opacity: 0.95;
+        }
+
+        .cell.safe {
+            background: #dcedc8;
+            border: 3px solid #7cb342;
+        }
+
+        .cell.danger {
+            background: #ffccbc;
+            border: 3px solid #f44336;
+        }
+
+        .cell-coord {
+            position: absolute;
+            top: 2px;
+            left: 4px;
+            font-size: 10px;
+            color: #424242;
+        }
+
+        .cell-icons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 3px;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+        }
+
+        .cell-percepts {
+            position: absolute;
+            bottom: 2px;
+            right: 4px;
+            font-size: 16px;
+            display: flex;
+            gap: 2px;
+        }
+
+        .status-box {
+            margin-top: 20px;
+            background: white;
+            border: 3px solid #2e7d32;
+            border-radius: 15px;
+            padding: 20px;
+            min-height: 80px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .status-text {
+            font-size: 18px;
+            color: #1b5e20;
+            font-weight: 500;
+        }
+
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            min-width: 320px;
+        }
+
+        .btn {
+            padding: 15px 30px;
+            font-size: 18px;
+            border: 3px solid #000;
+            border-radius: 0px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+            text-transform: uppercase;
+            box-shadow: 4px 4px 0px rgba(0, 0, 0, 0.8);
+            font-family: "Jersey 10", sans-serif;
+        }
+
+        .btn:hover {
+            transform: translate(-2px, -2px);
+            box-shadow: 6px 6px 0px rgba(0, 0, 0, 0.8);
+        }
+
+        .btn:active {
+            transform: translate(2px, 2px);
+            box-shadow: 2px 2px 0px rgba(0, 0, 0, 0.8);
+        }
+
+        .btn-play {
+            background: #ffd54f;
+            color: #000;
+        }
+
+        .btn-stop {
+            background: #ef5350;
+            color: #fff;
+        }
+
+        .btn-reset {
+            background: #e0e0e0;
+            color: #000;
+        }
+
+        .btn-manual {
+            background: #64b5f6;
+            color: #fff;
+        }
+
+        .btn-auto {
+            background: #aed581;
+            color: #000;
+        }
+
+        .arrow-controls {
+            margin-top: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .arrow-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .arrow-btn {
+            width: 50px;
+            height: 50px;
+            font-size: 24px;
+            border-radius: 10px;
+            border: 2px solid #000;
+            background: #fff9c4;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            box-shadow: 0 3px 6px rgba(0, 0, 0, 0.2);
+        }
+
+        .arrow-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .arrow-btn:active {
+            transform: scale(0.95);
+        }
+
+        .action-btns {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+            width: 200px;
+        }
+
+        .action-btn {
+            flex: 1;
+            padding: 12px;
+            font-size: 18px;
+            border: 2px solid #000;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: "Jersey 10", sans-serif;
+        }
+
+        .btn-grab {
+            background: #66bb6a;
+            color: #fff;
+        }
+
+        .btn-shoot {
+            background: #ef5350;
+            color: #fff;
+        }
+
+        .info-panel {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-top: 15px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .info-panel h3 {
+            color: #2e7d32;
+            margin-bottom: 15px;
+            font-size: 18px;
+            border-bottom: 2px solid #81c784;
+            padding-bottom: 8px;
+        }
+
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #e0e0e0;
+            font-size: 14px;
+        }
+
+        .info-item:last-child {
+            border-bottom: none;
+        }
+
+        .info-label {
+            color: #424242;
+        }
+
+        .info-value {
+            color: #2e7d32;
+            font-weight: 600;
+        }
+
+        .legend {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-top: 15px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .legend h4 {
+            color: #2e7d32;
+            margin-bottom: 15px;
+            font-size: 16px;
+            border-bottom: 2px solid #81c784;
+            padding-bottom: 8px;
+        }
+
+        .legend-section {
+            margin-bottom: 15px;
+        }
+
+        .legend-section-title {
+            color: #558b2f;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 6px 0;
+            font-size: 13px;
+            color: #424242;
+        }
+
+        .legend-icon {
+            font-size: 20px;
+            width: 28px;
+            text-align: center;
+        }
+
+        .kb-panel {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-top: 15px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .kb-panel h3 {
+            color: #2e7d32;
+            margin-bottom: 15px;
+            font-size: 18px;
+            border-bottom: 2px solid #81c784;
+            padding-bottom: 8px;
+        }
+
+        .kb-entry {
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            padding: 4px 8px;
+            margin: 3px 0;
+            background: #f5f5f5;
+            border-radius: 4px;
+            color: #424242;
+        }
+
+        .rules-panel {
+            background: #fff3e0;
+            border: 2px solid #ff9800;
+            border-radius: 15px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+
+        .rules-panel h4 {
+            color: #e65100;
+            margin-bottom: 10px;
+            font-size: 15px;
+        }
+
+        .rule-item {
+            font-size: 12px;
+            color: #424242;
+            margin: 6px 0;
+            padding-left: 10px;
+        }
+
+        @media (max-width: 768px) {
+            .game-container {
+                flex-direction: column;
+            }
+
+            .grid {
+                grid-template-columns: repeat(4, 85px);
+                grid-template-rows: repeat(4, 85px);
+            }
+
+            .cell {
+                font-size: 28px;
+            }
+
+            .controls {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎮 Wumpus World - Knowledge-Based Agent</h1>
+            <p>Navigate safely using logical reasoning and forward chaining</p>
+        </div>
+
+        <div class="game-container">
+            <!-- Game Board -->
+            <div class="game-board">
+                <div class="grid" id="gameGrid">
+                    <!-- Cells will be generated here -->
+                    <div class="cell">
+                        <span class="cell-coord">[0,3]</span>
+                        <div class="cell-icons">🧒</div>
+                        <div class="cell-percepts"></div>
+                    </div>
+                    <div class="cell dark">
+                        <span class="cell-coord">[1,3]</span>
+                        <div class="cell-icons"></div>
+                        <div class="cell-percepts">💨</div>
+                    </div>
+                    <div class="cell">
+                        <span class="cell-coord">[2,3]</span>
+                        <div class="cell-icons"></div>
+                        <div class="cell-percepts"></div>
+                    </div>
+                    <div class="cell dark">
+                        <span class="cell-coord">[3,3]</span>
+                        <div class="cell-icons">🔥</div>
+                        <div class="cell-percepts"></div>
+                    </div>
+                    <div class="cell dark">
+                        <span class="cell-coord">[0,2]</span>
+                        <div class="cell-icons">🔥</div>
+                        <div class="cell-percepts"></div>
+                    </div>
+                    <div class="cell">
+                        <span class="cell-coord">[1,2]</span>
+                        <div class="cell-icons"></div>
+                        <div class="cell-percepts">💨🌫️</div>
+                    </div>
+                    <div class="cell dark">
+                        <span class="cell-coord">[2,2]</span>
+                        <div class="cell-icons">👹</div>
+                        <div class="cell-percepts"></div>
+                    </div>
+                    <div class="cell">
+                        <span class="cell-coord">[3,2]</span>
+                        <div class="cell-icons"></div>
+                        <div class="cell-percepts">💨🌫️</div>
+                    </div>
+                    <div class="cell">
+                        <span class="cell-coord">[0,1]</span>
+                        <div class="cell-icons"></div>
+                        <div class="cell-percepts">💨</div>
+                    </div>
+                    <div class="cell dark">
+                        <span class="cell-coord">[1,1]</span>
+                        <div class="cell-icons"></div>
+                        <div class="cell-percepts">🌫️</div>
+                    </div>
+                    <div class="cell">
+                        <span class="cell-coord">[2,1]</span>
+                        <div class="cell-icons"></div>
+                        <div class="cell-percepts">🌫️</div>
+                    </div>
+                    <div class="cell dark">
+                        <span class="cell-coord">[3,1]</span>
+                        <div class="cell-icons"></div>
+                        <div class="cell-percepts">💨</div>
+                    </div>
+                    <div class="cell dark">
+                        <span class="cell-coord">[0,0]</span>
+                        <div class="cell-icons"></div>
+                        <div class="cell-percepts"></div>
+                    </div>
+                    <div class="cell">
+                        <span class="cell-coord">[1,0]</span>
+                        <div class="cell-icons"></div>
+                        <div class="cell-percepts"></div>
+                    </div>
+                    <div class="cell dark">
+                        <span class="cell-coord">[2,0]</span>
+                        <div class="cell-icons">💰</div>
+                        <div class="cell-percepts"></div>
+                    </div>
+                    <div class="cell">
+                        <span class="cell-coord">[3,0]</span>
+                        <div class="cell-icons"></div>
+                        <div class="cell-percepts"></div>
+                    </div>
+                </div>
+
+                <div class="status-box">
+                    <div class="status-text" id="statusText">🎯 Ready. Agent at starting position [0,3]. Click RESET to generate new world!</div>
+                </div>
+
+                <!-- Knowledge Base Panel -->
+                <div class="kb-panel">
+                    <h3>🧠 Knowledge Base (Forward Chaining)</h3>
+                    <div class="kb-entry">✓ Safe[0,3] = TRUE (Starting position)</div>
+                    <div class="kb-entry">✓ B[1,3] → P[0,2] OR P[1,2] OR P[2,3]</div>
+                    <div class="kb-entry">✓ S[1,2] → W[0,2] OR W[1,1] OR W[1,3] OR W[2,2]</div>
+                    <div class="kb-entry">✓ ¬B[0,3] → ¬P[0,2] AND ¬P[1,3]</div>
+                    <div class="kb-entry">✓ Safe[1,3] = TRUE (No pit inferred)</div>
+                    <div class="kb-entry">⚠ Danger[0,2] = UNKNOWN (Breeze detected)</div>
+                    <div class="kb-entry">⚠ Danger[2,2] = UNKNOWN (Stench detected)</div>
+                    <div class="kb-entry">🎯 G[2,0] = TRUE (Gold location known)</div>
+                </div>
+            </div>
+
+            <!-- Controls Panel -->
+            <div class="controls">
+                <button class="btn btn-play">PLAY AUTO MODE</button>
+                <button class="btn btn-stop">STOP AI</button>
+                <button class="btn btn-reset">RESET GAME</button>
+                <button class="btn btn-manual">MANUAL MODE</button>
+                <button class="btn btn-auto">AUTO MODE</button>
+
+                <!-- Arrow Controls -->
+                <div class="arrow-controls" id="arrowControls">
+                    <div class="arrow-row">
+                        <div style="width: 50px;"></div>
+                        <button class="arrow-btn">▲</button>
+                        <div style="width: 50px;"></div>
+                    </div>
+                    <div class="arrow-row">
+                        <button class="arrow-btn">◄</button>
+                        <button class="arrow-btn">▼</button>
+                        <button class="arrow-btn">►</button>
+                    </div>
+                    <div class="action-btns">
+                        <button class="action-btn btn-grab">📦 GRAB</button>
+                        <button class="action-btn btn-shoot">🏹 SHOOT</button>
+                    </div>
+                </div>
+
+                <!-- Info Panel -->
+                <div class="info-panel">
+                    <h3>📊 Game Status</h3>
+                    <div class="info-item">
+                        <span class="info-label">Mode:</span>
+                        <span class="info-value" id="modeText">MANUAL</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Score:</span>
+                        <span class="info-value" id="scoreText">0</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Has Gold:</span>
+                        <span class="info-value" id="goldText">No</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Has Arrow:</span>
+                        <span class="info-value" id="arrowText">Yes (1)</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Position:</span>
+                        <span class="info-value" id="posText">[0, 3]</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Percepts:</span>
+                        <span class="info-value" id="perceptText">None</span>
+                    </div>
+                </div>
+
+                <!-- Rules Panel -->
+                <div class="rules-panel">
+                    <h4>⚙️ Agent Rules</h4>
+                    <div class="rule-item">1️⃣ Breeze → Pit nearby</div>
+                    <div class="rule-item">2️⃣ Stench → Wumpus nearby</div>
+                    <div class="rule-item">3️⃣ Safe → No Pit & No Wumpus</div>
+                    <div class="rule-item">4️⃣ Only move to Safe cells</div>
+                    <div class="rule-item">5️⃣ Grab gold if Glitter detected</div>
+                    <div class="rule-item">6️⃣ Shoot if Wumpus position known</div>
+                </div>
+
+                <!-- Legend -->
+                <div class="legend">
+                    <h4>🗺️ Legend</h4>
+                    
+                    <div class="legend-section">
+                        <div class="legend-section-title">Objects:</div>
+                        <div class="legend-item">
+                            <span class="legend-icon">🔥</span>
+                            <span>Pit - P[x,y]</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-icon">👹</span>
+                            <span>Wumpus - W[x,y]</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-icon">💰</span>
+                            <span>Gold - G[x,y]</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-icon">🧒</span>
+                            <span>Agent</span>
+                        </div>
+                    </div>
+
+                    <div class="legend-section">
+                        <div class="legend-section-title">Percepts:</div>
+                        <div class="legend-item">
+                            <span class="legend-icon">💨</span>
+                            <span>Breeze - B[x,y]</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-icon">🌫️</span>
+                            <span>Stench - S[x,y]</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-icon">✨</span>
+                            <span>Glitter (at Gold)</span>
+                        </div>
+                    </div>
+
+                    <div class="legend-section">
+                        <div class="legend-section-title">Cell States:</div>
+                        <div class="legend-item">
+                            <span class="legend-icon">🟩</span>
+                            <span>Safe[x,y] - Green border</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-icon">🟨</span>
+                            <span>Visited - Light background</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-icon">🟥</span>
+                            <span>Danger - Red border</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
